@@ -11,8 +11,8 @@
 #   ./install.sh --version v0.2.0
 #
 #   # Remote install (from any machine):
-#   curl -fsSL https://raw.githubusercontent.com/victor62-wh/graphdb-agent-releases/main/install.sh | bash
-#   curl -fsSL ... | bash -s -- --version v0.3.0 --dir /opt/bin
+#   curl -fsSL https://raw.githubusercontent.com/victor62-wh/graphdb-agent/main/install.sh | bash
+#   curl -fsSL ... | bash -s -- --version v0.2.0 --dir /opt/bin
 #
 # Options:
 #   --version VERSION   Specific version (default: latest from dist/ or GitHub)
