@@ -8,6 +8,65 @@ graphdb-agent 更新日志。重点标注集成方需要关注的变更。
 
 ---
 
+## v0.2.0 (2026-04-20)
+
+### 内置 RAG 知识库（检索增强生成）
+
+**[集成方需关注]** 新增内置向量知识库，支持上传私有文档（专家经验、业务规则等），大模型对话时自动检索相关内容并注入上下文。
+
+#### 新增环境变量
+
+```bash
+# 必须配置（否则 RAG 功能禁用，不影响现有行为）
+EMBEDDING_API_KEY=sk-...        # Embedding API key（优先）
+# 或自动复用 OPENAI_API_KEY
+
+# 可选
+EMBEDDING_BASE_URL=https://...  # 自定义 OpenAI 兼容端点
+EMBEDDING_MODEL=text-embedding-3-small  # 默认值
+```
+
+#### 新增 API（5 个端点）
+
+```bash
+# 上传文本文档
+curl -X POST http://localhost:8080/api/v1/knowledge \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"业务规则", "content":"规则1: ..."}'
+
+# 上传文件（.txt/.md）
+curl -X POST http://localhost:8080/api/v1/knowledge/upload \
+  -F "file=@rules.md" -F "title=业务规则"
+
+# 列出所有文档
+curl http://localhost:8080/api/v1/knowledge
+
+# 搜索知识库
+curl -X POST http://localhost:8080/api/v1/knowledge/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"如何处理退款", "top_k":5}'
+
+# 删除文档
+curl -X DELETE http://localhost:8080/api/v1/knowledge/{doc_id}
+```
+
+#### 工作原理
+
+1. 文档上传后自动分块（512字符/块，50字符重叠）并生成向量
+2. 每次用户提问时，自动检索 top-3 相关片段
+3. 相关内容追加到系统提示词末尾，大模型参考后回答
+4. 知识库持久化存储，重启不丢失
+
+#### 集成方需要做什么
+
+**启用 RAG**：在启动 graphdb-agent 时设置 `EMBEDDING_API_KEY`（或确保 `OPENAI_API_KEY` 已设置）。
+
+**上传知识**：系统启动后调用 `POST /api/v1/knowledge` 上传领域文档。一次上传，持久存储，无需重复操作。
+
+**不做任何改动时**：行为与 v0.1.0 完全一致（向后兼容）。未配 embedding key 时 RAG 功能完全禁用，不注册任何知识库端点。
+
+---
+
 ## v0.5.0 (2026-04-20)
 
 ### 系统提示词 REST API（领域知识注入）
