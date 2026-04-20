@@ -8,6 +8,43 @@ graphdb-agent 更新日志。重点标注集成方需要关注的变更。
 
 ---
 
+## v0.5.0 (2026-04-20)
+
+### 系统提示词 REST API（领域知识注入）
+
+**[集成方需关注]** 新增 `POST /api/v1/system-prompt` 端点，外部系统可通过 HTTP 注入领域知识（系统提示词），大模型在每次对话时会自动使用这些知识。
+
+**此前这个端点不存在，集成方的系统提示词注入会静默失败。升级到 v0.5.0 后无需改代码，重启即自动生效。**
+
+#### 新增 API
+
+```bash
+# 设置系统提示词（按语言）
+curl -X POST http://localhost:8080/api/v1/system-prompt \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "prompts": {
+      "zh-CN": "你是XXX系统的智能助手。规则：...",
+      "en": "You are the XXX system assistant. Rules: ..."
+    }
+  }'
+
+# 查看当前系统提示词
+curl http://localhost:8080/api/v1/system-prompt
+```
+
+#### 其他改进
+
+- 二进制支持 `-version` 参数查看版本号
+
+#### 集成方需要做什么
+
+**如果已经在调 `POST /api/v1/system-prompt`**（如 SmartNu）：不需要改任何代码，升级二进制并重启服务即可。
+
+**如果还没有注入系统提示词**（如 KG360）：建议在系统启动时调用此接口，注入本系统的领域知识，提升大模型回答质量。
+
+---
+
 ## v0.4.0 (2026-04-14)
 
 ### Graph Panel: 可配置属性显示
