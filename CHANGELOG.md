@@ -8,6 +8,61 @@ graphdb-agent 更新日志。重点标注集成方需要关注的变更。
 
 ---
 
+## v0.2.1 (2026-04-21)
+
+### RAG 知识库三项改进
+
+#### 1. 同标题文档自动覆盖（去重）
+
+重复上传同标题文档时，旧文档自动删除，避免搜索结果冗余。无需手动清理。
+
+#### 2. 支持 PDF 和 Word 文件上传
+
+**[集成方需关注]** 文件上传端点 `POST /api/v1/knowledge/upload` 现在支持：
+- `.pdf` — 自动提取文字内容
+- `.docx` — 自动提取文字内容
+- `.txt` / `.md` — 纯文本（原有行为不变）
+
+上传方式与之前完全一致，无需改代码：
+```bash
+curl -X POST http://localhost:8080/api/v1/knowledge/upload \
+  -F "file=@document.pdf" -F "title=产品手册"
+```
+
+#### 3. 语音文件上传（Whisper 转文字）
+
+**[集成方需关注]** 支持上传音频文件，自动调用 OpenAI Whisper API 转为文字后入库。
+
+支持格式：`.mp3`、`.wav`、`.m4a`、`.flac`、`.ogg`、`.webm`
+
+```bash
+curl -X POST http://localhost:8080/api/v1/knowledge/upload \
+  -F "file=@meeting.mp3" -F "title=会议纪要"
+```
+
+##### 新增环境变量（可选）
+
+```bash
+WHISPER_API_KEY=sk-...              # 优先；未设置则回退到 OPENAI_API_KEY
+WHISPER_BASE_URL=https://api.openai.com/v1  # 默认值
+WHISPER_MODEL=whisper-1             # 默认值
+```
+
+未配置 Whisper API key 时，上传音频文件会返回错误提示，不影响其他功能。
+
+#### 其他改进
+
+- `DocumentMeta` 返回新增 `source_type` 字段（`text`/`pdf`/`docx`/`audio`）
+- 文件上传大小限制从 10MB 提升到 25MB（适配音频文件）
+
+#### 集成方需要做什么
+
+**升级二进制并重启即可**。去重和 PDF/DOCX 支持开箱即用。
+
+**如需语音上传**：确保 `WHISPER_API_KEY` 或 `OPENAI_API_KEY` 已设置。
+
+---
+
 ## v0.2.0 (2026-04-20)
 
 ### 内置 RAG 知识库（检索增强生成）
