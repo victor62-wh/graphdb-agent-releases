@@ -11,7 +11,7 @@
 #   ./install.sh --version v0.2.0
 #
 #   # Remote install (from any machine):
-#   curl -fsSL https://raw.githubusercontent.com/victor62-wh/graphdb-agent/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/victor62-wh/graphdb-agent-releases/main/install.sh | bash
 #   curl -fsSL ... | bash -s -- --version v0.2.0 --dir /opt/bin
 #
 # Options:
@@ -128,15 +128,33 @@ trap "rm -f $TMPFILE" EXIT
 if [ "$SOURCE" = "local" ]; then
     cp "$SRC_FILE" "$TMPFILE"
 else
-    FILENAME="${BINARY_NAME}-${VERSION}-${OS}-${ARCH}"
-    URL="https://github.com/${REPO}/releases/download/${VERSION}/${FILENAME}"
+    # Resolve the real asset URL from the Releases API by matching the
+    # -<os>-<arch> suffix — do NOT build the filename from the tag, so a
+    # version-in-filename mismatch (e.g. tag v0.6.0 carrying a v0.3.0 asset)
+    # can't break the install.
+    API="https://api.github.com/repos/${REPO}/releases/tags/${VERSION}"
+    URL=$(curl -fsSL "$API" \
+        | grep -o '"browser_download_url": *"[^"]*"' \
+        | cut -d'"' -f4 \
+        | grep -E -- "-${OS}-${ARCH}$" \
+        | head -1)
+
+    if [ -z "$URL" ]; then
+        echo ""
+        echo "Error: no asset matching -${OS}-${ARCH} in release ${VERSION}."
+        echo "Available assets:"
+        curl -fsSL "$API" \
+            | grep -o '"browser_download_url": *"[^"]*"' \
+            | cut -d'"' -f4 | sed 's/^/  /'
+        echo "See: https://github.com/${REPO}/releases"
+        exit 1
+    fi
+
     echo ""
     echo "Downloading ${URL} ..."
     if ! curl -fSL -o "$TMPFILE" "$URL"; then
         echo ""
-        echo "Error: download failed."
-        echo "Check that version '${VERSION}' exists at:"
-        echo "  https://github.com/${REPO}/releases"
+        echo "Error: download failed for ${URL}"
         exit 1
     fi
 fi
